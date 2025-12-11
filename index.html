@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>도파민 카드</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #020617;
+      color: #e5e7eb;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 520px;
+      margin: 0 auto;
+      background: radial-gradient(circle at 50% 50%, #1e1b4b 0%, #020617 50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 상단 UI */
+    .top-bar {
+      position: absolute;
+      top: calc(12px + env(safe-area-inset-top, 0px));
+      left: 0;
+      right: 0;
+      padding: 0 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 20px;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    .stats {
+      display: flex;
+      gap: 8px;
+      font-size: 11px;
+      margin-top: 4px;
+    }
+
+    .chip {
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      backdrop-filter: blur(8px);
+    }
+
+    .chip-rare {
+      border-color: rgba(250, 204, 21, 0.6);
+      color: #facc15;
+    }
+
+    .chip-epic {
+      border-color: rgba(192, 132, 252, 0.6);
+      color: #c084fc;
+    }
+
+    /* 카드 스프레드 영역 */
+    .card-spread {
+      position: relative;
+      width: 100%;
+      height: 350px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      perspective: 1200px;
+    }
+
+    /* 개별 카드 */
+    .card {
+      position: absolute;
+      width: 100px;
+      height: 140px;
+      cursor: pointer;
+      transform-style: preserve-3d;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      -webkit-tap-highlight-color: transparent;
+      transform-origin: center center;
+    }
+
+    .card:hover:not(.selected):not(.hidden) {
+      transform: var(--hover-transform);
+      z-index: 50 !important;
+    }
+
+    .card.hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.5) translateY(100px) !important;
+    }
+
+    .card.selected {
+      z-index: 100 !important;
+      transform: translateX(0) translateY(0) rotate(0deg) scale(1.8) !important;
+    }
+
+    .card.selected.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 
+        0 8px 30px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+      overflow: hidden;
+    }
+
+    /* 카드 뒷면 */
+    .card-back {
+      background: linear-gradient(145deg, #312e81 0%, #1e1b4b 100%);
+      border: 1.5px solid rgba(129, 140, 248, 0.3);
+    }
+
+    .card-back::before {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border: 1px solid rgba(129, 140, 248, 0.2);
+      border-radius: 6px;
+    }
+
+    .card-back-symbol {
+      font-size: 28px;
+      color: rgba(165, 180, 252, 0.5);
+    }
+
+    .card-back-pattern {
+      position: absolute;
+      inset: 0;
+      background: 
+        radial-gradient(circle at 30% 30%, rgba(129, 140, 248, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(167, 139, 250, 0.1) 0%, transparent 50%);
+    }
+
+    /* 카드 앞면 */
+    .card-front {
+      transform: rotateY(180deg);
+      padding: 14px 10px;
+      text-align: center;
+    }
+
+    .card-front.common {
+      background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
+      border: 1.5px solid rgba(148, 163, 184, 0.4);
+    }
+
+    .card-front.rare {
+      background: linear-gradient(145deg, #fef9c3 0%, #fde047 100%);
+      border: 1.5px solid rgba(202, 138, 4, 0.5);
+      box-shadow: 
+        0 8px 30px rgba(0, 0, 0, 0.4),
+        0 0 25px rgba(250, 204, 21, 0.2);
+    }
+
+    .card-front.epic {
+      background: linear-gradient(145deg, #f3e8ff 0%, #d8b4fe 100%);
+      border: 1.5px solid rgba(147, 51, 234, 0.5);
+      box-shadow: 
+        0 8px 30px rgba(0, 0, 0, 0.4),
+        0 0 30px rgba(192, 132, 252, 0.25);
+    }
+
+    .card-emoji {
+      font-size: 36px;
+      margin-bottom: 8px;
+    }
+
+    .card-text {
+      font-size: 9px;
+      line-height: 1.4;
+      color: #1e293b;
+      font-weight: 500;
+      word-break: keep-all;
+    }
+
+    .card-rarity {
+      position: absolute;
+      bottom: 8px;
+      font-size: 7px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 6px;
+      border-radius: 999px;
+    }
+
+    .card-rarity.common {
+      background: rgba(100, 116, 139, 0.2);
+      color: #64748b;
+    }
+
+    .card-rarity.rare {
+      background: rgba(202, 138, 4, 0.2);
+      color: #a16207;
+    }
+
+    .card-rarity.epic {
+      background: rgba(147, 51, 234, 0.2);
+      color: #7e22ce;
+    }
+
+    /* 힌트 & 버튼 영역 */
+    .bottom-area {
+      position: absolute;
+      bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: #64748b;
+      text-align: center;
+      transition: opacity 0.3s;
+    }
+
+    .hint.hidden {
+      opacity: 0;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 10px;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+    }
+
+    .btn-group.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .btn {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn:active {
+      transform: scale(0.96);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-share {
+      background: linear-gradient(135deg, #f97316, #ec4899, #8b5cf6);
+      color: white;
+      box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+    }
+
+    /* 토스트 메시지 */
+    .toast {
+      position: fixed;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: rgba(15, 23, 42, 0.95);
+      color: white;
+      padding: 14px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.3s;
+      z-index: 1000;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,0.1);
+      max-width: 90%;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* 펄스 애니메이션 */
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 0.8; }
+    }
+
+    .card:not(.selected):not(.hidden) .card-back-symbol {
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* 반응형 */
+    @media (max-width: 400px) {
+      .card {
+        width: 70px;
+        height: 100px;
+      }
+      .card.selected {
+        transform: translateX(0) translateY(0) rotate(0deg) scale(2.2) !important;
+      }
+      .card-emoji {
+        font-size: 28px;
+      }
+      .card-text {
+        font-size: 7px;
+      }
+      .card-back-symbol {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="top-bar">
+      <div class="title">🃏 오늘의 카드</div>
+      <div class="subtitle">카드를 골라 운명을 확인하세요</div>
+      <div class="stats">
+        <div class="chip" id="stat-count">뽑은 카드 0장</div>
+        <div class="chip chip-rare" id="stat-rare">레어 0</div>
+        <div class="chip chip-epic" id="stat-epic">에픽 0</div>
+      </div>
+    </div>
+
+    <div class="card-spread" id="card-spread"></div>
+
+    <div class="bottom-area">
+      <div class="hint" id="hint">카드를 선택하세요</div>
+      <div class="btn-group" id="btn-group">
+        <button class="btn btn-primary" id="reset-btn">🔄 다시 뽑기</button>
+        <button class="btn btn-share" id="share-btn">
+          <span id="share-btn-text">📤 공유하기</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">저장되었습니다!</div>
+  </div>
+
+  <script>
+    const CARD_POOL = [
+      { emoji: "🔥", text: "오늘도 대충 살지만 기분만은 메인 캐릭터." },
+      { emoji: "☕", text: "카페인을 신앙처럼 믿는 편." },
+      { emoji: "💻", text: "코드 짜다 보면 내가 짜인 느낌." },
+      { emoji: "🌙", text: "지금 자면 내일이 오고, 안 자면 내일이 망한다." },
+      { emoji: "🍜", text: "라면이 아니라 행복을 끓이는 중입니다." },
+      { emoji: "🐌", text: "느릿느릿하지만 멈추진 않는다… 아마도." },
+      { emoji: "🎲", text: "계획? 그거 인생이랑 안 친해서요." },
+      { emoji: "💸", text: "돈은 떠나도 택배는 온다." },
+      { emoji: "🐈", text: "집사도 출근하니까, 고양이도 퇴근시켜줘야 함." },
+      { emoji: "⚡", text: "오늘도 안 할 일을 열심히 미루는 중." },
+      { emoji: "🎧", text: "노래 한 곡 끝날 때까지, 이 일도 끝났으면." },
+      { emoji: "🌈", text: "별일은 없지만, 별 생각은 많다." },
+      { emoji: "🧠", text: "머리는 아는데 몸이 모르는 상태." },
+      { emoji: "🚀", text: "마음만은 이미 퇴근 후." },
+      { emoji: "🧃", text: "사라진 건 체력인데, 늘어난 건 피로도뿐." },
+      { emoji: "🎯", text: "목표는 있는데 조준이 안 됨." },
+      { emoji: "🌊", text: "파도처럼 출근하고 썰물처럼 퇴근한다." },
+      { emoji: "🍕", text: "인생은 피자처럼, 어떤 조각이든 맛있다." },
+      { emoji: "🦥", text: "느림의 미학을 실천 중." },
+      { emoji: "✨", text: "반짝반짝 빛나고 싶은데 배터리가 없음." },
+      { emoji: "🎪", text: "매일이 서커스, 나는 광대." },
+      { emoji: "🌻", text: "해바라기처럼 돈 쪽을 바라보는 중." },
+      { emoji: "🎵", text: "인생의 BGM이 버퍼링 중." },
+      { emoji: "🔮", text: "미래는 모르지만 퇴근 시간은 안다." },
+      { emoji: "🧊", text: "쿨한 척하지만 속은 얼음처럼 차갑게 식는 중." },
+    ];
+
+    let totalCards = 0;
+    let rareCount = 0;
+    let epicCount = 0;
+
+    const cardSpread = document.getElementById("card-spread");
+    const hint = document.getElementById("hint");
+    const btnGroup = document.getElementById("btn-group");
+    const resetBtn = document.getElementById("reset-btn");
+    const shareBtn = document.getElementById("share-btn");
+    const shareBtnText = document.getElementById("share-btn-text");
+    const toast = document.getElementById("toast");
+    const statCountEl = document.getElementById("stat-count");
+    const statRareEl = document.getElementById("stat-rare");
+    const statEpicEl = document.getElementById("stat-epic");
+
+    let cards = [];
+    let selectedCard = null;
+    let isFlipped = false;
+
+    // Web Share API 지원 여부 체크
+    const canShare = navigator.share && navigator.canShare;
+    
+    if (canShare) {
+      shareBtnText.textContent = "📤 공유하기";
+    } else {
+      shareBtnText.textContent = "📸 저장하기";
+    }
+
+    function updateStats() {
+      statCountEl.textContent = `뽑은 카드 ${totalCards}장`;
+      statRareEl.textContent = `레어 ${rareCount}`;
+      statEpicEl.textContent = `에픽 ${epicCount}`;
+    }
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+
+    function pickRandomCard() {
+      const base = CARD_POOL[Math.floor(Math.random() * CARD_POOL.length)];
+      const roll = Math.random();
+      let rarity = "common";
+      if (roll > 0.985) rarity = "epic";
+      else if (roll > 0.8) rarity = "rare";
+      return { ...base, rarity };
+    }
+
+    function createCards() {
+      cardSpread.innerHTML = "";
+      cards = [];
+      selectedCard = null;
+      isFlipped = false;
+
+      const cardCount = 12;
+      const spreadAngle = 120;
+      const startAngle = -spreadAngle / 2;
+      const angleStep = spreadAngle / (cardCount - 1);
+
+      for (let i = 0; i < cardCount; i++) {
+        const cardData = pickRandomCard();
+        const angle = startAngle + angleStep * i;
+        const radians = (angle * Math.PI) / 180;
+        
+        const radius = 220;
+        const x = Math.sin(radians) * radius;
+        const y = Math.cos(radians) * radius * 0.3;
+        
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.index = i;
+        
+        const baseTransform = `translateX(${x}px) translateY(${y}px) rotate(${angle}deg)`;
+        const hoverTransform = `translateX(${x}px) translateY(${y - 25}px) rotate(${angle}deg) scale(1.12)`;
+        
+        card.style.setProperty("--hover-transform", hoverTransform);
+        card.style.transform = baseTransform;
+        card.style.zIndex = i;
+
+        const symbols = ["✦", "◆", "★", "❖", "✧", "◇"];
+        const symbol = symbols[i % symbols.length];
+
+        card.innerHTML = `
+          <div class="card-inner">
+            <div class="card-face card-back">
+              <div class="card-back-pattern"></div>
+              <div class="card-back-symbol">${symbol}</div>
+            </div>
+            <div class="card-face card-front ${cardData.rarity}">
+              <div class="card-emoji">${cardData.emoji}</div>
+              <div class="card-text">${cardData.text}</div>
+              <div class="card-rarity ${cardData.rarity}">
+                ${cardData.rarity === "epic" ? "✨ EPIC" : cardData.rarity === "rare" ? "⭐ RARE" : "COMMON"}
+              </div>
+            </div>
+          </div>
+        `;
+
+        card.cardData = cardData;
+        card.addEventListener("click", () => handleCardClick(card));
+        
+        cardSpread.appendChild(card);
+        cards.push(card);
+      }
+
+      hint.classList.remove("hidden");
+      hint.textContent = "카드를 선택하세요";
+      btnGroup.classList.remove("visible");
+    }
+
+    function handleCardClick(card) {
+      if (selectedCard === card) {
+        if (!isFlipped) {
+          card.classList.add("flipped");
+          isFlipped = true;
+          hint.textContent = "탭하면 다시 덮어요";
+          
+          totalCards++;
+          if (card.cardData.rarity === "rare") rareCount++;
+          if (card.cardData.rarity === "epic") epicCount++;
+          updateStats();
+          
+          btnGroup.classList.add("visible");
+        } else {
+          card.classList.remove("flipped");
+          isFlipped = false;
+          hint.textContent = "탭해서 카드 확인";
+        }
+        return;
+      }
+
+      if (selectedCard) {
+        selectedCard.classList.remove("selected", "flipped");
+        cards.forEach(c => c.classList.remove("hidden"));
+      }
+
+      selectedCard = card;
+      isFlipped = false;
+
+      card.classList.add("selected");
+      
+      cards.forEach(c => {
+        if (c !== card) {
+          c.classList.add("hidden");
+        }
+      });
+
+      hint.textContent = "탭해서 카드 확인";
+      btnGroup.classList.remove("visible");
+    }
+
+    function resetCards() {
+      createCards();
+    }
+
+    // 이모지를 Twemoji 이미지 URL로 변환
+    function getEmojiImageUrl(emoji) {
+      const codePoints = [...emoji]
+        .map(char => char.codePointAt(0).toString(16))
+        .join("-");
+      return `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/${codePoints}.png`;
+    }
+
+    // 이미지 로드 Promise
+    function loadImage(url) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error(`Failed to load: ${url}`));
+        img.src = url;
+      });
+    }
+
+    // Canvas로 공유 이미지 생성 (비동기)
+    async function createShareCanvas() {
+      const { emoji, text, rarity } = selectedCard.cardData;
+      
+      const canvas = document.createElement("canvas");
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext("2d");
+
+      // 배경 그라데이션
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, 1920);
+      bgGrad.addColorStop(0, "#1e1b4b");
+      bgGrad.addColorStop(0.5, "#020617");
+      bgGrad.addColorStop(1, "#0f172a");
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // 타이틀 (이모지 부분은 이미지로)
+      ctx.font = "bold 56px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "rgba(165, 180, 252, 0.9)";
+      ctx.textAlign = "center";
+      
+      // 타이틀 이모지 로드
+      try {
+        const titleEmojiImg = await loadImage(getEmojiImageUrl("🃏"));
+        ctx.drawImage(titleEmojiImg, 540 - 160, 100, 56, 56);
+        ctx.fillText(" 오늘의 카드", 540 + 20, 150);
+      } catch (e) {
+        ctx.fillText("🃏 오늘의 카드", 540, 150);
+      }
+
+      // 카드 배경
+      const cardX = 240;
+      const cardY = 400;
+      const cardW = 600;
+      const cardH = 840;
+      const cardR = 40;
+
+      // 카드 그림자
+      ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+      ctx.shadowBlur = 60;
+      ctx.shadowOffsetY = 20;
+
+      // 카드 배경색
+      let cardGrad;
+      if (rarity === "epic") {
+        cardGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+        cardGrad.addColorStop(0, "#f3e8ff");
+        cardGrad.addColorStop(1, "#d8b4fe");
+      } else if (rarity === "rare") {
+        cardGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+        cardGrad.addColorStop(0, "#fef9c3");
+        cardGrad.addColorStop(1, "#fde047");
+      } else {
+        cardGrad = ctx.createLinearGradient(cardX, cardY, cardX + cardW, cardY + cardH);
+        cardGrad.addColorStop(0, "#f8fafc");
+        cardGrad.addColorStop(1, "#e2e8f0");
+      }
+
+      // 둥근 사각형 그리기
+      ctx.beginPath();
+      ctx.moveTo(cardX + cardR, cardY);
+      ctx.lineTo(cardX + cardW - cardR, cardY);
+      ctx.quadraticCurveTo(cardX + cardW, cardY, cardX + cardW, cardY + cardR);
+      ctx.lineTo(cardX + cardW, cardY + cardH - cardR);
+      ctx.quadraticCurveTo(cardX + cardW, cardY + cardH, cardX + cardW - cardR, cardY + cardH);
+      ctx.lineTo(cardX + cardR, cardY + cardH);
+      ctx.quadraticCurveTo(cardX, cardY + cardH, cardX, cardY + cardH - cardR);
+      ctx.lineTo(cardX, cardY + cardR);
+      ctx.quadraticCurveTo(cardX, cardY, cardX + cardR, cardY);
+      ctx.closePath();
+      
+      ctx.fillStyle = cardGrad;
+      ctx.fill();
+
+      // 그림자 리셋
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
+      ctx.shadowOffsetY = 0;
+
+      // 카드 테두리
+      ctx.strokeStyle = rarity === "epic" 
+        ? "rgba(147, 51, 234, 0.5)" 
+        : rarity === "rare" 
+        ? "rgba(202, 138, 4, 0.5)" 
+        : "rgba(148, 163, 184, 0.4)";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      // 메인 이모지 (Twemoji 이미지로)
+      try {
+        const emojiImg = await loadImage(getEmojiImageUrl(emoji));
+        const emojiSize = 160;
+        ctx.drawImage(emojiImg, 540 - emojiSize/2, 620 - emojiSize/2, emojiSize, emojiSize);
+      } catch (e) {
+        // 이미지 로드 실패 시 텍스트로 폴백
+        ctx.font = "160px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(emoji, 540, 620);
+      }
+
+      // 텍스트
+      ctx.font = "bold 44px system-ui, -apple-system, sans-serif";
+      ctx.fillStyle = "#1e293b";
+      ctx.textBaseline = "top";
+      ctx.textAlign = "center";
+      
+      // 텍스트 줄바꿈
+      const maxWidth = 500;
+      const lineHeight = 66;
+      const words = text.split(" ");
+      let line = "";
+      let y = 780;
+      
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + " ";
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          ctx.fillText(line.trim(), 540, y);
+          line = words[n] + " ";
+          y += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line.trim(), 540, y);
+
+      // 레어리티 배지
+      let badgeText, badgeEmoji;
+      if (rarity === "epic") {
+        badgeText = " EPIC";
+        badgeEmoji = "✨";
+      } else if (rarity === "rare") {
+        badgeText = " RARE";
+        badgeEmoji = "⭐";
+      } else {
+        badgeText = "COMMON";
+        badgeEmoji = null;
+      }
+      
+      ctx.font = "bold 28px system-ui";
+      const textWidth = ctx.measureText(badgeText).width;
+      const badgeWidth = textWidth + (badgeEmoji ? 80 : 40);
+      const badgeX = 540 - badgeWidth / 2;
+      const badgeY = 1100;
+      
+      ctx.fillStyle = rarity === "epic" 
+        ? "rgba(147, 51, 234, 0.2)" 
+        : rarity === "rare" 
+        ? "rgba(202, 138, 4, 0.2)" 
+        : "rgba(100, 116, 139, 0.2)";
+      
+      ctx.beginPath();
+      ctx.roundRect(badgeX, badgeY, badgeWidth, 50, 25);
+      ctx.fill();
+      
+      ctx.fillStyle = rarity === "epic" 
+        ? "#7e22ce" 
+        : rarity === "rare" 
+        ? "#a16207" 
+        : "#64748b";
+      ctx.textBaseline = "middle";
+
+      if (badgeEmoji) {
+        try {
+          const badgeEmojiImg = await loadImage(getEmojiImageUrl(badgeEmoji));
+          ctx.drawImage(badgeEmojiImg, badgeX + 15, badgeY + 9, 32, 32);
+          ctx.fillText(badgeText, 540 + 10, badgeY + 25);
+        } catch (e) {
+          ctx.fillText(badgeEmoji + badgeText, 540, badgeY + 25);
+        }
+      } else {
+        ctx.fillText(badgeText, 540, badgeY + 25);
+      }
+
+      // 워터마크
+      ctx.font = "32px system-ui";
+      ctx.fillStyle = "rgba(148, 163, 184, 0.5)";
+      ctx.fillText("@dopamine_card", 540, 1800);
+
+      return canvas;
+    }
+
+    // 공유/저장 함수
+    async function shareOrSave() {
+      if (!selectedCard || !isFlipped) {
+        showToast("먼저 카드를 뒤집어주세요!");
+        return;
+      }
+
+      // 버튼 비활성화 (로딩 중)
+      shareBtn.disabled = true;
+      shareBtnText.textContent = "⏳ 준비 중...";
+
+      try {
+        const { emoji, text } = selectedCard.cardData;
+        const canvas = await createShareCanvas();
+
+        // Web Share API 지원하면 네이티브 공유 시트 띄우기
+        if (canShare) {
+          try {
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, "image/png"));
+            const file = new File([blob], "dopamine-card.png", { type: "image/png" });
+            
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: "오늘의 도파민 카드",
+                text: `${emoji} ${text}\n\n#도파민카드 #오늘의운세`
+              });
+              showToast("공유 완료! 🎉");
+              return;
+            }
+          } catch (e) {
+            if (e.name !== "AbortError") {
+              console.log("Share failed, falling back to download");
+            } else {
+              return;
+            }
+          }
+        }
+
+        // 공유 불가능하면 다운로드
+        const link = document.createElement("a");
+        link.download = `dopamine-card-${Date.now()}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+        showToast("✅ 이미지가 저장되었습니다!");
+        
+      } catch (error) {
+        console.error(error);
+        showToast("이미지 생성에 실패했어요 😢");
+      } finally {
+        // 버튼 복원
+        shareBtn.disabled = false;
+        shareBtnText.textContent = canShare ? "📤 공유하기" : "📸 저장하기";
+      }
+    }
+
+    resetBtn.addEventListener("click", resetCards);
+    shareBtn.addEventListener("click", shareOrSave);
+
+    cardSpread.addEventListener("click", (e) => {
+      if (e.target === cardSpread && selectedCard) {
+        selectedCard.classList.remove("selected", "flipped");
+        cards.forEach(c => c.classList.remove("hidden"));
+        selectedCard = null;
+        isFlipped = false;
+        hint.textContent = "카드를 선택하세요";
+        btnGroup.classList.remove("visible");
+      }
+    });
+
+    createCards();
+  </script>
+</body>
+</html>
