@@ -3,8 +3,7 @@ import { RARITY_CONFIG } from './cardData.js';
 import { getEmojiImageUrl, loadImage, canUseWebShare, showToast } from './utils.js';
 
 const KAKAO_APP_KEY = '7794c1ce53d83f6a22929d333477108d';
-//const SITE_URL = 'https://supinkim.github.io/today-fortune/'; // 배포된 사이트 URL로 변경
-const SITE_URL = 'http://localhost:3000'; // 배포된 사이트 URL로 변경
+const SITE_URL = 'https://supinkim.github.io/today-fortune/'; // 배포된 사이트 URL로 변경
 
 class ShareManager {
   constructor() {
