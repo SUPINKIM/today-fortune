@@ -213,3 +213,23 @@ export function getCardsByRarity(rarity) {
     default: return [];
   }
 }
+
+// 랜덤 카드 뽑기
+export function pickRandomCard() {
+  // 가중치 기반 등급 선택
+  const rand = Math.random() * 100;
+  let rarity;
+  
+  if (rand < 60) rarity = 'common';           // 60%
+  else if (rand < 85) rarity = 'rare';        // 25%
+  else if (rand < 97) rarity = 'epic';        // 12%
+  else rarity = 'legendary';                   // 3%
+  
+  const cards = getCardsByRarity(rarity);
+  const card = cards[Math.floor(Math.random() * cards.length)];
+  
+  return {
+    ...card,
+    rarity
+  };
+}

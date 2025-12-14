@@ -59,15 +59,13 @@ class ShareManager {
             },
           },
         ],
-        callback: () => {
-          // 공유 성공 시 보너스 콜백 호출
-          if (onBonusAdded) {
-            onBonusAdded();
-          }
-        }
       });
       
-      showToast('카카오톡으로 공유했어요! 💬');
+      // 공유 시작 시 바로 콜백 호출 (모바일에서 SDK callback이 안 불리는 문제 해결)
+      // 토스트는 콜백에서 처리
+      if (onBonusAdded) {
+        onBonusAdded();
+      }
     } catch (e) {
       console.error('Kakao share error:', e);
       showToast('카카오톡 공유에 실패했어요 😢');

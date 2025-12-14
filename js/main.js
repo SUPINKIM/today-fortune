@@ -37,7 +37,7 @@ class App {
     cardManager.onCardFlip = this.handleCardFlip.bind(this);
     cardManager.onStatsUpdate = this.updateStats.bind(this);
     cardManager.onDailyLimitReached = () => {
-      showToast('🚫 오늘 뽑기 횟수를 모두 사용했어요!\n내일 다시 도전하세요 💪');
+      showToast(`🚫 오늘 뽑기 횟수를 모두 사용했어요!\n내일 다시 도전하세요 💪`);
     };
 
     // 이벤트 바인딩
@@ -113,10 +113,12 @@ class App {
       const canGetBonus = collection.canGetShareBonus();
 
       shareManager.shareToKakao(cardData, () => {
-        // 공유 성공 콜백
+        // 공유 콜백
         if (canGetBonus && collection.addShareBonus()) {
           showToast('🎁 공유 보너스! 뽑기 +1회 추가!');
           this.updateDailyCount();
+        } else {
+          showToast('카카오톡으로 공유했어요! 💬');
         }
       });
     });
