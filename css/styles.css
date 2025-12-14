@@ -154,8 +154,8 @@ body {
 /* ===== Individual Card ===== */
 .card {
   position: absolute;
-  width: 110px;
-  height: 154px;
+  width: clamp(70px, 18vw, 110px);
+  height: clamp(98px, 25vw, 154px);
   cursor: pointer;
   transform-style: preserve-3d;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -176,7 +176,7 @@ body {
 
 .card.selected {
   z-index: 100 !important;
-  transform: translateX(0) translateY(0) rotate(0deg) scale(1.8) !important;
+  transform: translateX(0) translateY(0) rotate(0deg) scale(2.2) !important;
 }
 
 .card.selected.flipped .card-inner {
@@ -279,13 +279,13 @@ body {
 }
 
 .card-emoji {
-  font-size: 32px;
+  font-size: clamp(24px, 7vw, 32px);
   margin-bottom: 4px;
   flex-shrink: 0;
 }
 
 .card-text {
-  font-size: 7px;
+  font-size: clamp(6px, 1.8vw, 8px);
   line-height: 1.35;
   color: #1e293b;
   font-weight: 500;
@@ -294,7 +294,7 @@ body {
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
-  max-height: 40px;
+  max-height: 44px;
   padding: 0 4px;
 }
 
@@ -855,23 +855,12 @@ body {
 
 /* ===== Responsive ===== */
 @media (max-width: 400px) {
-  .card {
-    width: 80px;
-    height: 112px;
-  }
-  
   .card.selected {
-    transform: translateX(0) translateY(0) rotate(0deg) scale(2) !important;
-  }
-  
-  .card-emoji {
-    font-size: 24px;
+    transform: translateX(0) translateY(0) rotate(0deg) scale(2.5) !important;
   }
   
   .card-text {
-    font-size: 6px;
     -webkit-line-clamp: 3;
-    max-height: 26px;
   }
   
   .card-back-symbol {

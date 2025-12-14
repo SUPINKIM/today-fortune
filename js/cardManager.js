@@ -38,13 +38,16 @@ class CardManager {
     const spreadAngle = 120;
     const startAngle = -spreadAngle / 2;
     const angleStep = spreadAngle / (cardCount - 1);
+    
+    // 화면 크기에 따라 반경 동적 계산
+    const screenWidth = window.innerWidth;
+    const radius = Math.min(screenWidth * 0.5, 240);
 
     for (let i = 0; i < cardCount; i++) {
       const cardData = this.pickRandomCard();
       const angle = startAngle + angleStep * i;
       const radians = (angle * Math.PI) / 180;
       
-      const radius = 240;
       const x = Math.sin(radians) * radius;
       const y = Math.cos(radians) * radius * 0.3;
       
