@@ -19,6 +19,7 @@ class App {
       resetBtn: document.getElementById('reset-btn'),
       shareBtn: document.getElementById('share-btn'),
       shareBtnText: document.getElementById('share-btn-text'),
+      kakaoBtn: document.getElementById('kakao-btn'),
       collectionBtn: document.getElementById('collection-btn'),
       statOwned: document.getElementById('stat-owned'),
       statTotal: document.getElementById('stat-total'),
@@ -97,6 +98,27 @@ class App {
       
       this.elements.shareBtn.disabled = false;
       this.elements.shareBtnText.textContent = shareManager.getButtonText();
+    });
+
+    // 카카오톡 공유
+    this.elements.kakaoBtn.addEventListener('click', () => {
+      const cardData = cardManager.getSelectedCard();
+      
+      if (!cardData || !cardManager.isCardFlipped()) {
+        showToast('먼저 카드를 뒤집어주세요!');
+        return;
+      }
+
+      // 공유 보너스 받을 수 있는지 미리 체크
+      const canGetBonus = collection.canGetShareBonus();
+
+      shareManager.shareToKakao(cardData, () => {
+        // 공유 성공 콜백
+        if (canGetBonus && collection.addShareBonus()) {
+          showToast('🎁 공유 보너스! 뽑기 +1회 추가!');
+          this.updateDailyCount();
+        }
+      });
     });
 
     // 컬렉션

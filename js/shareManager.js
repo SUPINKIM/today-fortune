@@ -2,9 +2,82 @@
 import { RARITY_CONFIG } from './cardData.js';
 import { getEmojiImageUrl, loadImage, canUseWebShare, showToast } from './utils.js';
 
+const KAKAO_APP_KEY = '7794c1ce53d83f6a22929d333477108d';
+//const SITE_URL = 'https://supinkim.github.io/today-fortune/'; // 배포된 사이트 URL로 변경
+const SITE_URL = 'http://localhost:3000'; // 배포된 사이트 URL로 변경
+
 class ShareManager {
   constructor() {
     this.canShare = canUseWebShare();
+    this.kakaoInitialized = false;
+    this.initKakao();
+  }
+
+  // 카카오 SDK 초기화
+  initKakao() {
+    if (typeof Kakao !== 'undefined' && !Kakao.isInitialized()) {
+      try {
+        Kakao.init(KAKAO_APP_KEY);
+        this.kakaoInitialized = true;
+        console.log('Kakao SDK initialized');
+      } catch (e) {
+        console.warn('Kakao SDK init failed:', e);
+      }
+    }
+  }
+
+  // 카카오톡 공유
+  shareToKakao(cardData, onBonusAdded) {
+    if (!this.kakaoInitialized) {
+      showToast('카카오 SDK가 초기화되지 않았어요');
+      return;
+    }
+
+    const { emoji, text, rarity } = cardData;
+    const config = RARITY_CONFIG[rarity];
+    
+    try {
+      Kakao.Share.sendDefault({
+        objectType: 'feed',
+        content: {
+          title: `${emoji} 오늘의 도파민 카드`,
+          description: text,
+          imageUrl: `${SITE_URL}/og-image.png`,
+          link: {
+            mobileWebUrl: SITE_URL,
+            webUrl: SITE_URL,
+          },
+        },
+        itemContent: {
+          profileText: `${config.name} 등급`,
+        },
+        buttons: [
+          {
+            title: '나도 뽑아보기',
+            link: {
+              mobileWebUrl: SITE_URL,
+              webUrl: SITE_URL,
+            },
+          },
+        ],
+        callback: () => {
+          // 공유 성공 시 보너스 콜백 호출
+          if (onBonusAdded) {
+            onBonusAdded();
+          }
+        }
+      });
+      
+      showToast('카카오톡으로 공유했어요! 💬');
+    } catch (e) {
+      console.error('Kakao share error:', e);
+      showToast('카카오톡 공유에 실패했어요 😢');
+    }
+  }
+
+  // 카카오 SDK 사용 가능 여부
+  isKakaoAvailable() {
+    return this.kakaoInitialized;
   }
 
   // Canvas로 공유 이미지 생성

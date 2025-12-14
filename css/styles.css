@@ -394,6 +394,16 @@ body {
   box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
 }
 
+.btn-kakao {
+  background: #FEE500;
+  color: #191919;
+  box-shadow: 0 4px 15px rgba(254, 229, 0, 0.4);
+}
+
+.btn-kakao img {
+  border-radius: 4px;
+}
+
 /* ===== Toast ===== */
 .toast {
   position: fixed;
@@ -788,8 +798,41 @@ body {
   margin-bottom: 20px;
 }
 
+.card-detail-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.card-detail-kakao {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 999px;
+  background: #FEE500;
+  color: #191919;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.card-detail-kakao:hover {
+  background: #F5DC00;
+}
+
+.card-detail-kakao:active {
+  transform: scale(0.96);
+}
+
+.card-detail-kakao img {
+  border-radius: 4px;
+}
+
 .card-detail-close {
-  padding: 10px 32px;
+  padding: 10px 24px;
   border: none;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.1);

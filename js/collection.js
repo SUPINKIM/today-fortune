@@ -1,12 +1,14 @@
 // 컬렉션 관리 모듈
 import { storage, formatDate } from './utils.js';
 import { ALL_CARDS_MAP, TOTAL_CARD_COUNT, CARD_COUNTS, RARITY_CONFIG, getCardsByRarity } from './cardData.js';
+import { shareManager } from './shareManager.js';
 
 const STORAGE_KEY = 'dopamine_card_collection';
 const STATS_KEY = 'dopamine_card_stats';
 const DAILY_KEY = 'dopamine_card_daily';
 
 const DAILY_LIMIT = 3; // 하루 최대 뽑기 횟수
+const SHARE_BONUS = 1; // 공유 시 추가 횟수
 
 // 컬렉션 데이터 구조
 // { cardId: { firstDrawn: timestamp, count: number, lastDrawn: timestamp } }
@@ -24,11 +26,11 @@ class Collection {
   // 일일 데이터 로드 (날짜 체크)
   loadDaily() {
     const today = new Date().toDateString();
-    const saved = storage.get(DAILY_KEY, { date: '', count: 0 });
+    const saved = storage.get(DAILY_KEY, { date: '', count: 0, shared: false });
     
     // 날짜가 바뀌었으면 리셋
     if (saved.date !== today) {
-      return { date: today, count: 0 };
+      return { date: today, count: 0, shared: false };
     }
     return saved;
   }
@@ -43,9 +45,10 @@ class Collection {
     // 날짜 체크 (혹시 자정 넘었을 수 있으니)
     const today = new Date().toDateString();
     if (this.daily.date !== today) {
-      this.daily = { date: today, count: 0 };
+      this.daily = { date: today, count: 0, shared: false };
     }
-    return this.daily.count < DAILY_LIMIT;
+    const totalLimit = DAILY_LIMIT + (this.daily.shared ? SHARE_BONUS : 0);
+    return this.daily.count < totalLimit;
   }
 
   // 오늘 남은 횟수
@@ -54,17 +57,42 @@ class Collection {
     if (this.daily.date !== today) {
       return DAILY_LIMIT;
     }
-    return Math.max(0, DAILY_LIMIT - this.daily.count);
+    const totalLimit = DAILY_LIMIT + (this.daily.shared ? SHARE_BONUS : 0);
+    return Math.max(0, totalLimit - this.daily.count);
   }
 
   // 일일 뽑기 횟수 증가
   incrementDailyCount() {
     const today = new Date().toDateString();
     if (this.daily.date !== today) {
-      this.daily = { date: today, count: 0 };
+      this.daily = { date: today, count: 0, shared: false };
     }
     this.daily.count++;
     this.saveDaily();
+  }
+
+  // 오늘 공유 보너스 받을 수 있는지
+  canGetShareBonus() {
+    const today = new Date().toDateString();
+    if (this.daily.date !== today) {
+      return true;
+    }
+    return !this.daily.shared;
+  }
+
+  // 공유 보너스 추가
+  addShareBonus() {
+    const today = new Date().toDateString();
+    if (this.daily.date !== today) {
+      this.daily = { date: today, count: 0, shared: false };
+    }
+    
+    if (!this.daily.shared) {
+      this.daily.shared = true;
+      this.saveDaily();
+      return true;
+    }
+    return false;
   }
 
   // 카드 획득 기록
@@ -349,19 +377,29 @@ function renderCardDetailModal(cardId) {
         <span>🎴 ${collectionData.count}회 획득</span>
         <span>📅 ${formatDate(collectionData.firstDrawn)}</span>
       </div>
-      <button class="card-detail-close">닫기</button>
+      <div class="card-detail-buttons">
+        <button class="card-detail-kakao">
+          <img src="https://developers.kakao.com/assets/img/about/logos/kakaotalksharing/kakaotalk_sharing_btn_small.png" alt="카카오" width="18" height="18">
+          카톡 공유
+        </button>
+        <button class="card-detail-close">닫기</button>
+      </div>
     </div>
   `;
   
   // 닫기 이벤트
-  modal.querySelector('.card-detail-backdrop').addEventListener('click', () => {
+  const closeModal = () => {
     modal.classList.add('closing');
     setTimeout(() => modal.remove(), 200);
-  });
+  };
   
-  modal.querySelector('.card-detail-close').addEventListener('click', () => {
-    modal.classList.add('closing');
-    setTimeout(() => modal.remove(), 200);
+  modal.querySelector('.card-detail-backdrop').addEventListener('click', closeModal);
+  modal.querySelector('.card-detail-close').addEventListener('click', closeModal);
+  
+  // 카카오 공유 이벤트
+  modal.querySelector('.card-detail-kakao').addEventListener('click', () => {
+    const cardData = { ...cardInfo, rarity: cardInfo.rarity };
+    shareManager.shareToKakao(cardData);
   });
   
   document.body.appendChild(modal);
