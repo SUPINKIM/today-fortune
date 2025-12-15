@@ -447,7 +447,7 @@ body {
   z-index: 1000;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255,255,255,0.1);
-  width: fit-content;
+  min-width: fit-content;
   max-width: 360px;
   text-align: center;
   overflow: hidden;

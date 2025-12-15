@@ -35,9 +35,10 @@ class App {
 
     // 카드 매니저 콜백 설정
     cardManager.onCardFlip = this.handleCardFlip.bind(this);
+    cardManager.onCardFlipAgain = this.handleCardFlipAgain.bind(this);  // 이미 확인한 카드 다시 뒤집기
     cardManager.onStatsUpdate = this.updateStats.bind(this);
     cardManager.onDailyLimitReached = () => {
-      showToast(`🚫 오늘 뽑기 횟수를 모두 사용했어요!\n내일 다시 도전하세요 💪`);
+      showToast('🚫 오늘 뽑기 횟수를 모두 사용했어요!\n내일 다시 도전하세요 💪');
     };
 
     // 이벤트 바인딩
@@ -165,6 +166,12 @@ class App {
     } else if (cardData.rarity === 'epic') {
       setTimeout(() => showToast('💎 에픽 카드 획득!', 2500), 500);
     }
+  }
+
+  // 이미 확인한 카드 다시 뒤집기 (횟수 차감 없음)
+  handleCardFlipAgain(cardData) {
+    this.updateHint('탭하면 다시 덮어요');
+    this.elements.btnGroup.classList.add('visible');
   }
 
   updateHint(text) {

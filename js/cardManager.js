@@ -131,6 +131,18 @@ class CardManager {
 
   // 카드 뒤집기
   flipCard(card) {
+    // 이미 한 번 확인한 카드면 횟수 차감 없이 뒤집기만
+    if (card.revealed) {
+      card.classList.add('flipped');
+      this.isFlipped = true;
+      
+      // UI 업데이트 콜백은 호출 (횟수 차감 없이)
+      if (this.onCardFlipAgain) {
+        this.onCardFlipAgain(card.cardData);
+      }
+      return;
+    }
+    
     // 일일 제한 체크
     if (!collection.canDrawToday()) {
       // 제한 도달 시 콜백으로 알림
@@ -141,6 +153,7 @@ class CardManager {
     }
     
     card.classList.add('flipped');
+    card.revealed = true;  // 한 번 확인했다고 표시
     this.isFlipped = true;
     
     // 컬렉션에 추가
